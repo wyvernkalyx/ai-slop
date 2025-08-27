@@ -1,0 +1,108 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+config/.env
+
+# API Keys and Secrets
+*.key
+*.pem
+secrets/
+
+# Output Data
+data/out/
+data/logs/
+data/cache/
+temp_assembly/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environments
+bin/
+include/
+lib/
+lib64/
+share/
+pyvenv.cfg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Media Files (generated)
+*.mp4
+*.mp3
+*.wav
+*.jpg
+*.png
+*.avi
+*.mov
+
+# But keep example/test media
+!tests/data/**/*.mp4
+!tests/data/**/*.mp3
+!tests/data/**/*.jpg
+
+# Temporary Files
+*.tmp
+*.temp
+*.log
+*.bak
+temp/
+tmp/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Documentation builds
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node (if using any JS)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Slop Video Generator</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #242424;
+            --bg-card: #1e1e1e;
+            --border-color: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --text-muted: #707070;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #a78bfa;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --reddit: #ff4500;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Light mode */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #ffffff;
+                --bg-secondary: #f9fafb;
+                --bg-tertiary: #f3f4f6;
+                --bg-card: #ffffff;
+                --border-color: #e5e7eb;
+                --text-primary: #111827;
+                --text-secondary: #4b5563;
+                --text-muted: #9ca3af;
+                --accent-primary: #7c3aed;
+                --accent-secondary: #8b5cf6;
+                --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+                --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+                --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+            }
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 32px 0;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -10%;
+            right: -10%;
+            height: 100%;
+            background: var(--accent-gradient);
+            opacity: 0.1;
+            border-radius: 0 0 50% 50%;
+            z-index: -1;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        /* Panels */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+        
+        .panel:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent-primary);
+        }
+        
+        .panel h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+        
+        .panel h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--accent-gradient);
+            border-radius: 2px;
+        }
+        
+        /* Reddit Post */
+        .reddit-post {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .reddit-post:hover {
+            border-color: var(--reddit);
+        }
+        
+        .reddit-post h3 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        
+        .reddit-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+        
+        .reddit-meta span {
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .reddit-meta .subreddit {
+            color: var(--reddit);
+            font-weight: 600;
+        }
+        
+        .reddit-content {
+            color: var(--text-secondary);
+            margin: 12px 0;
+            line-height: 1.5;
+        }
+        
+        .reddit-link {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            transition: color 0.2s;
+        }
+        
+        .reddit-link:hover {
+            color: var(--accent-secondary);
+        }
+        
+        /* Textarea */
+        textarea {
+            width: 100%;
+            min-height: 420px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+        
+        textarea::placeholder {
+            color: var(--text-muted);
+        }
+        
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        button:active:before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        /* Status Panel */
+        .status-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .status-item {
+            padding: 16px;
+            margin: 12px 0;
+            border-radius: 12px;
+            border-left: 4px solid;
+            background: var(--bg-secondary);
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .status-info {
+            border-left-color: var(--accent-primary);
+        }
+        
+        .status-running {
+            border-left-color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        .status-completed {
+            border-left-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .status-failed {
+            border-left-color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--bg-tertiary);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Result Box */
+        .result {
+            padding: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 12px;
+            margin-top: 16px;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .result h3 {
+            color: var(--success);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .result-item {
+            margin: 8px 0;
+            color: var(--text-secondary);
+        }
+        
+        .result-item strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        
+        .info-box ol {
+            margin-left: 20px;
+            margin-top: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .info-box li {
+            margin: 8px 0;
+        }
+        
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            border-color: var(--accent-primary);
+        }
+        
+        .theme-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--text-primary);
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+        <svg class="theme-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path id="theme-icon-path" d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+        </svg>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>AI-Slop Video Generator</h1>
+            <p class="subtitle">Transform Reddit posts into engaging video content</p>
+        </div>
+        
+        <div class="grid">
+            <!-- Reddit Post Panel -->
+            <div class="panel">
+                <h2>Reddit Post</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="fetchRedditPost()">
+                        🔄 Fetch Random Post
+                    </button>
+                    <button class="btn-secondary" onclick="clearPost()">
+                        🗑️ Clear
+                    </button>
+                </div>
+                
+                <div id="reddit-display">
+                    <div class="reddit-post">
+                        <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                            Click "Fetch Random Post" to load content from Reddit
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Script Editor Panel -->
+            <div class="panel">
+                <h2>Video Script</h2>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="generatePrompt()">
+                        💡 Generate LLM Prompt
+                    </button>
+                    <button class="btn-primary" onclick="processScript()">
+                        🚀 Process Script
+                    </button>
+                </div>
+                
+                <textarea id="script-input" placeholder='Paste your generated script JSON here...
+
+{
+  "version": "script.v1",
+  "title": "Your Video Title",
+  "hook": "Opening hook...",
+  "narration": {
+    "intro": "Introduction...",
+    "chapters": [
+      {
+        "id": 1,
+        "heading": "First Point",
+        "body": "Content..."
+      }
+    ],
+    "outro": "Closing..."
+  }
+}'></textarea>
+            </div>
+        </div>
+        
+        <!-- Status Panel -->
+        <div class="status-panel">
+            <h2>Processing Status</h2>
+            <div id="status-container">
+                <div class="info-box">
+                    <strong>🎬 How to use:</strong>
+                    <ol>
+                        <li>Fetch a Reddit post or use your own content</li>
+                        <li>Generate an LLM prompt and create your script</li>
+                        <li>Click "Process Script" to start video generation</li>
+                        <li>Processing happens in the background - no timeouts!</li>
+                        <li>Watch the status update in real-time</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPost = null;
+        let currentJob = null;
+        let statusCheckInterval = null;
+        let isDarkMode = true;
+        
+        // Check system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            isDarkMode = false;
+        }
+        
+        // Check saved preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            isDarkMode = savedTheme === 'dark';
+        }
+        
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            updateTheme();
+        }
+        
+        function updateTheme() {
+            const root = document.documentElement;
+            const icon = document.getElementById('theme-icon-path');
+            
+            if (isDarkMode) {
+                root.style.setProperty('--bg-primary', '#0f0f0f');
+                root.style.setProperty('--bg-secondary', '#1a1a1a');
+                root.style.setProperty('--bg-tertiary', '#242424');
+                root.style.setProperty('--bg-card', '#1e1e1e');
+                root.style.setProperty('--border-color', '#2a2a2a');
+                root.style.setProperty('--text-primary', '#e0e0e0');
+                root.style.setProperty('--text-secondary', '#a0a0a0');
+                root.style.setProperty('--text-muted', '#707070');
+                icon.setAttribute('d', 'M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z');
+            } else {
+                root.style.setProperty('--bg-primary', '#ffffff');
+                root.style.setProperty('--bg-secondary', '#f9fafb');
+                root.style.setProperty('--bg-tertiary', '#f3f4f6');
+                root.style.setProperty('--bg-card', '#ffffff');
+                root.style.setProperty('--border-color', '#e5e7eb');
+                root.style.setProperty('--text-primary', '#111827');
+                root.style.setProperty('--text-secondary', '#4b5563');
+                root.style.setProperty('--text-muted', '#9ca3af');
+                icon.setAttribute('d', 'M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z');
+            }
+            
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        }
+        
+        // Initialize theme
+        updateTheme();
+        
+        async function fetchRedditPost() {
+            try {
+                updateStatus('Fetching Reddit post...', 'info');
+                const response = await fetch('http://localhost:5001/reddit/fetch', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const post = await response.json();
+                currentPost = post;
+                displayPost(post);
+                updateStatus('Reddit post loaded successfully!', 'info');
+            } catch (error) {
+                updateStatus('Error fetching Reddit post: ' + error.message, 'error');
+            }
+        }
+        
+        function displayPost(post) {
+            document.getElementById('reddit-display').innerHTML = `
+                <div class="reddit-post">
+                    <h3>${post.title}</h3>
+                    <div class="reddit-meta">
+                        <span class="subreddit">r/${post.subreddit}</span>
+                        <span>👤 u/${post.author}</span>
+                        <span>⬆️ ${post.score.toLocaleString()}</span>
+                    </div>
+                    <div class="reddit-content">${post.content || '(No text content)'}</div>
+                    <a href="${post.url}" target="_blank" class="reddit-link">
+                        View on Reddit →
+                    </a>
+                </div>
+            `;
+        }
+        
+        function clearPost() {
+            currentPost = null;
+            document.getElementById('reddit-display').innerHTML = `
+                <div class="reddit-post">
+                    <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                        Click "Fetch Random Post" to load content from Reddit
+                    </p>
+                </div>
+            `;
+            updateStatus('Cleared Reddit post', 'info');
+        }
+        
+        function generatePrompt() {
+            if (!currentPost) {
+                updateStatus('Please fetch a Reddit post first!', 'error');
+                return;
+            }
+            
+            const prompt = `You are creating an educational YouTube video script based on this Reddit post.
+
+Reddit Post:
+Title: ${currentPost.title}
+Content: ${currentPost.content || 'No text content'}
+Subreddit: r/${currentPost.subreddit}
+
+Create a 2-3 minute video script in this EXACT JSON format:
+
+{
+  "version": "script.v1",
+  "post_id": "${currentPost.id}",
+  "title": "${currentPost.title}",
+  "hook": "[15-second attention-grabbing opening that poses the question or topic]",
+  "narration": {
+    "intro": "[30-second introduction that expands on the hook and sets up the video]",
+    "chapters": [
+      {
+        "id": 1,
+        "heading": "[Chapter 1 Title]",
+        "body": "[30-45 seconds of content for this section]"
+      },
+      {
+        "id": 2,
+        "heading": "[Chapter 2 Title]",
+        "body": "[30-45 seconds of content for this section]"
+      },
+      {
+        "id": 3,
+        "heading": "[Chapter 3 Title]",
+        "body": "[30-45 seconds of content for this section]"
+      }
+    ],
+    "outro": "[15-second conclusion with call-to-action]"
+  }
+}
+
+Make it engaging, educational, and suitable for a general audience. Write in a conversational tone.`;
+            
+            navigator.clipboard.writeText(prompt);
+            updateStatus('✅ LLM prompt copied to clipboard! Paste it into ChatGPT or Claude.', 'completed');
+        }
+        
+        async function processScript() {
+            if (!currentPost) {
+                updateStatus('Please fetch a Reddit post first!', 'error');
+                return;
+            }
+            
+            const scriptText = document.getElementById('script-input').value;
+            let script;
+            
+            try {
+                script = JSON.parse(scriptText);
+            } catch (error) {
+                updateStatus('Invalid JSON! Please check your script format.', 'error');
+                return;
+            }
+            
+            script.post_id = currentPost.id;
+            
+            updateStatus('Submitting job to server...', 'running');
+            
+            try {
+                const response = await fetch('http://localhost:5001/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        script: script,
+                        post: currentPost
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentJob = result.job_id;
+                    updateStatus(`Job ${currentJob} started! Processing in background... <span class="spinner"></span>`, 'running');
+                    startStatusChecking();
+                } else {
+                    updateStatus('Failed to start job: ' + result.error, 'error');
+                }
+            } catch (error) {
+                updateStatus('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function startStatusChecking() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+            statusCheckInterval = setInterval(checkJobStatus, 3000);
+            checkJobStatus();
+        }
+        
+        async function checkJobStatus() {
+            if (!currentJob) return;
+            
+            try {
+                const response = await fetch(`http://localhost:5001/status/${currentJob}`);
+                const status = await response.json();
+                
+                if (status.status === 'running') {
+                    updateStatus(
+                        `🎬 Processing video... <span class="spinner"></span><br>
+                        <small>Job: ${currentJob}</small>`,
+                        'running'
+                    );
+                } else if (status.status === 'completed') {
+                    clearInterval(statusCheckInterval);
+                    displayResult(status);
+                } else if (status.status === 'failed' || status.status === 'error' || status.status === 'timeout') {
+                    clearInterval(statusCheckInterval);
+                    updateStatus(
+                        `❌ Job failed: ${status.error || status.message}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+        
+        function updateStatus(message, type) {
+            const statusClass = type === 'running' ? 'status-running' :
+                              type === 'error' ? 'status-failed' :
+                              type === 'completed' ? 'status-completed' :
+                              'status-info';
+            
+            document.getElementById('status-container').innerHTML = `
+                <div class="status-item ${statusClass}">
+                    ${message}
+                </div>
+            `;
+        }
+        
+        function displayResult(status) {
+            let previewHtml = '';
+            if (status.video_file) {
+                const videoUrl = `http://localhost:5001/preview/${status.video_file.replace(/\\/g, '/')}`;
+                previewHtml = `
+                    <div style="margin: 20px 0;">
+                        <h4>📹 Video Preview:</h4>
+                        <video controls style="width: 100%; max-width: 800px; border-radius: 10px;">
+                            <source src="${videoUrl}" type="video/mp4">
+                            Your browser does not support video playback.
+                        </video>
+                    </div>
+                `;
+            } else if (status.audio_file) {
+                const audioUrl = `http://localhost:5001/preview/${status.audio_file.replace(/\\/g, '/')}`;
+                previewHtml = `
+                    <div style="margin: 20px 0;">
+                        <h4>🔊 Audio Preview:</h4>
+                        <audio controls style="width: 100%;">
+                            <source src="${audioUrl}" type="audio/wav">
+                            Your browser does not support audio playback.
+                        </audio>
+                    </div>
+                `;
+            }
+            
+            const html = `
+                <div class="result">
+                    <h3>✅ Video Generation Complete!</h3>
+                    <div class="result-item"><strong>Duration:</strong> ${status.duration_minutes} minutes</div>
+                    <div class="result-item"><strong>Output:</strong> ${status.output_dir}</div>
+                    ${status.video_file ? `<div class="result-item"><strong>Video:</strong> ${status.video_file}</div>` : ''}
+                    ${status.audio_file ? `<div class="result-item"><strong>Audio:</strong> ${status.audio_file}</div>` : ''}
+                    ${previewHtml}
+                    <br>
+                    <button class="btn-primary" onclick="startNew()">🔄 Start New Video</button>
+                    ${status.video_file ? `<button class="btn-secondary" onclick="window.open('http://localhost:5001/download/${status.video_file.replace(/\\/g, '/')}')">💾 Download Video</button>` : ''}
+                </div>
+            `;
+            
+            document.getElementById('status-container').innerHTML = html;
+        }
+        
+        function startNew() {
+            currentJob = null;
+            clearInterval(statusCheckInterval);
+            updateStatus('Ready to process a new video!', 'info');
+        }
+    </script>
+</body>
+</html>
