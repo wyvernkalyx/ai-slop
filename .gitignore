@@ -106,3 +106,6 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+# YouTube OAuth2 credentials
+config/youtube_credentials.json
+config/youtube_token.json

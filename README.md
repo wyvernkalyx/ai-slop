@@ -9,6 +9,7 @@ An automated YouTube video generation pipeline that creates faceless videos from
 - **Text-to-Speech**: Generates natural narration using ElevenLabs API
 - **Stock Footage**: Downloads relevant B-roll from Pexels/Pixabay
 - **Video Assembly**: Combines audio and video into complete YouTube videos
+- **YouTube Upload**: Automated upload with metadata and thumbnails
 - **Thumbnail Generation**: Auto-generates video thumbnails
 - **Web Interface**: User-friendly UI for manual control and monitoring
 
@@ -48,11 +49,21 @@ cp config/.env.template config/.env
 python production_simple.py
 ```
 
+### Production with YouTube Upload
+```bash
+# First time setup for YouTube
+python setup_youtube.py
+
+# Run pipeline with upload
+python production_with_youtube.py
+```
+
 This will:
 1. Load a script (or generate one if OpenAI is configured)
 2. Generate narration with ElevenLabs
 3. Download stock footage from Pexels
 4. Assemble everything into a complete video
+5. Upload to YouTube with metadata and thumbnail
 
 ### Web Interface
 ```bash

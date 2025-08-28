@@ -54,7 +54,9 @@ class FFmpegVideoAssembler:
                  clips: List[Path],
                  thumbnail_file: Optional[Path] = None,
                  script: Optional[Dict[str, Any]] = None,
-                 output_dir: Optional[Path] = None) -> Path:
+                 output_dir: Optional[Path] = None,
+                 include_intro: bool = True,
+                 include_outro: bool = True) -> Path:
         """Main assembly method matching expected interface.
         
         Args:
@@ -63,6 +65,8 @@ class FFmpegVideoAssembler:
             thumbnail_file: Optional thumbnail path
             script: Optional script metadata
             output_dir: Output directory
+            include_intro: Whether to include intro video
+            include_outro: Whether to include outro video
             
         Returns:
             Path to output video
@@ -96,7 +100,7 @@ class FFmpegVideoAssembler:
         
         # Assemble with ffmpeg
         success = self._assemble_with_ffmpeg(
-            audio_file, clips, output_file, audio_duration, thumbnail_file
+            audio_file, clips, output_file, audio_duration, thumbnail_file, include_intro, include_outro
         )
         
         if not success:
@@ -154,7 +158,9 @@ class FFmpegVideoAssembler:
                              clips: List[Path],
                              output_file: Path,
                              audio_duration: float,
-                             thumbnail_file: Optional[Path] = None) -> bool:
+                             thumbnail_file: Optional[Path] = None,
+                             include_intro: bool = True,
+                             include_outro: bool = True) -> bool:
         """Assemble video using ffmpeg directly.
         
         Args:
@@ -181,16 +187,29 @@ class FFmpegVideoAssembler:
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_path = Path(temp_dir)
                 
-                # Step 1: Create intro from thumbnail if available
+                # Step 1: Check for intro and outro videos
                 intro_file = None
-                if thumbnail_file and thumbnail_file.exists():
-                    intro_file = temp_path / "intro.mp4"
-                    if self._create_intro_from_thumbnail(thumbnail_file, intro_file):
-                        self.logger.info("Created intro from thumbnail")
+                outro_file = None
                 
-                # Step 2: Concatenate all clips
+                if include_intro:
+                    intro_path = Path("assets/videos/intro.mp4")
+                    if intro_path.exists():
+                        intro_file = intro_path
+                        self.logger.info(f"Using intro video: {intro_file}")
+                    else:
+                        self.logger.warning("Intro video not found at assets/videos/intro.mp4")
+                
+                if include_outro:
+                    outro_path = Path("assets/videos/outro.mp4")
+                    if outro_path.exists():
+                        outro_file = outro_path
+                        self.logger.info(f"Using outro video: {outro_file}")
+                    else:
+                        self.logger.warning("Outro video not found at assets/videos/outro.mp4")
+                
+                # Step 2: Concatenate all clips (with intro and outro if available)
                 concat_file = temp_path / "concatenated.mp4"
-                if not self._concatenate_clips(valid_clips, concat_file, intro_file):
+                if not self._concatenate_clips(valid_clips, concat_file, intro_file, outro_file):
                     return False
                 
                 # Step 3: Loop concatenated video to match audio duration
@@ -243,13 +262,15 @@ class FFmpegVideoAssembler:
             self.logger.warning(f"Failed to create intro: {e}")
             return False
     
-    def _concatenate_clips(self, clips: List[Path], output_file: Path, intro_file: Optional[Path] = None) -> bool:
+    def _concatenate_clips(self, clips: List[Path], output_file: Path, 
+                          intro_file: Optional[Path] = None, outro_file: Optional[Path] = None) -> bool:
         """Concatenate video clips using ffmpeg concat demuxer.
         
         Args:
             clips: List of video clips to concatenate
             output_file: Output file path
             intro_file: Optional intro video to prepend
+            outro_file: Optional outro video to append
             
         Returns:
             True if successful
@@ -264,6 +285,9 @@ class FFmpegVideoAssembler:
                 # Add all clips
                 for clip in clips:
                     f.write(f"file '{clip.absolute()}'\n")
+                # Add outro if available
+                if outro_file and outro_file.exists():
+                    f.write(f"file '{outro_file.absolute()}'\n")
             
             # Concatenate with re-encoding for consistency
             cmd = [
@@ -316,8 +340,11 @@ class FFmpegVideoAssembler:
             result = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
             input_duration = float(result.stdout.strip())
             
+            self.logger.info(f"Input video duration: {input_duration}s, target: {duration}s")
+            
             if input_duration >= duration:
                 # Just trim if longer than needed
+                self.logger.info(f"Trimming video from {input_duration}s to {duration}s")
                 cmd = [
                     'ffmpeg', '-y',
                     '-i', str(input_file),
@@ -327,20 +354,46 @@ class FFmpegVideoAssembler:
                 ]
             else:
                 # Loop video to extend duration
-                loops_needed = int(duration / input_duration) + 1
+                loops_needed = int(duration / input_duration) + 2  # Add extra loop for safety
+                self.logger.info(f"Looping video {loops_needed} times to reach {duration}s")
+                
+                # Use filter_complex for more reliable looping
                 cmd = [
                     'ffmpeg', '-y',
                     '-stream_loop', str(loops_needed),
                     '-i', str(input_file),
                     '-t', str(duration),
-                    '-c:v', 'copy',
+                    '-c:v', self.codec,  # Re-encode for reliability
+                    '-preset', 'fast',
+                    '-crf', '23',
+                    '-r', str(self.fps),
+                    '-pix_fmt', 'yuv420p',
+                    '-an',  # No audio in looped video
                     str(output_file)
                 ]
             
-            subprocess.run(cmd, capture_output=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                self.logger.error(f"Loop command failed: {result.stderr[:500]}")
+                return False
+                
+            # Verify the output duration
+            if output_file.exists():
+                verify_cmd = [
+                    'ffprobe', '-v', 'error',
+                    '-show_entries', 'format=duration',
+                    '-of', 'default=noprint_wrappers=1:nokey=1',
+                    str(output_file)
+                ]
+                verify_result = subprocess.run(verify_cmd, capture_output=True, text=True)
+                if verify_result.returncode == 0:
+                    actual_duration = float(verify_result.stdout.strip())
+                    self.logger.info(f"Looped video duration: {actual_duration}s")
+                    
             return output_file.exists()
             
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, ValueError) as e:
             self.logger.error(f"Failed to loop video: {e}")
             return False
     
@@ -357,6 +410,8 @@ class FFmpegVideoAssembler:
             True if successful
         """
         try:
+            # First approach: Use the audio duration as the master duration
+            # This ensures the full audio plays even if video needs to loop
             cmd = [
                 'ffmpeg', '-y',
                 '-i', str(video_file),
@@ -368,18 +423,37 @@ class FFmpegVideoAssembler:
                 '-b:a', '192k',  # Audio bitrate
                 '-ar', '44100',  # Audio sample rate
                 '-ac', '2',  # Stereo audio
-                '-t', str(duration),  # Set duration
-                '-shortest',  # End when shortest stream ends
+                '-t', str(duration),  # Set duration to audio duration
                 '-movflags', '+faststart',  # Optimize for streaming
                 str(output_file)
             ]
             
+            self.logger.info(f"Combining video and audio with duration: {duration}s")
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode != 0:
-                self.logger.error(f"Failed to combine video/audio: {result.stderr[:500]}")
-                # Try alternative approach without -shortest
-                cmd.remove('-shortest')
+                self.logger.warning(f"First attempt failed: {result.stderr[:200]}")
+                
+                # Second approach: Re-encode video if copy fails
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-i', str(video_file),
+                    '-i', str(audio_file),
+                    '-map', '0:v:0',
+                    '-map', '1:a:0',
+                    '-c:v', self.codec,  # Re-encode video
+                    '-preset', 'fast',
+                    '-crf', '23',
+                    '-c:a', 'aac',
+                    '-b:a', '192k',
+                    '-ar', '44100',
+                    '-ac', '2',
+                    '-t', str(duration),
+                    '-movflags', '+faststart',
+                    str(output_file)
+                ]
+                
+                self.logger.info("Retrying with video re-encoding...")
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 
             return result.returncode == 0

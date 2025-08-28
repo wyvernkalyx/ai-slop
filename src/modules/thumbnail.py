@@ -366,6 +366,37 @@ class ThumbnailGenerator:
         metadata_path = thumbnail_path.with_suffix('.json')
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
+    
+    def generate(self, text: str, output_dir: Path, job_id: str = 'thumb',
+                background_color: Optional[Tuple[int, int, int]] = None) -> Path:
+        """Simple wrapper for generating thumbnails with just text.
+        
+        Args:
+            text: Text to display on thumbnail
+            output_dir: Output directory
+            job_id: Job ID for filename
+            background_color: Optional RGB background color tuple
+            
+        Returns:
+            Path to generated thumbnail
+        """
+        # Override background color if provided
+        if background_color:
+            old_bg = self.background_color
+            self.background_color = f"#{background_color[0]:02x}{background_color[1]:02x}{background_color[2]:02x}"
+        
+        # Create minimal script and metadata
+        script = {'title': text, 'post_id': job_id}
+        metadata = {'thumbnail_text': text}
+        
+        # Generate thumbnail
+        thumbnail_path = self.generate_thumbnail(script, metadata, output_dir)
+        
+        # Restore original background color
+        if background_color:
+            self.background_color = old_bg
+            
+        return thumbnail_path
 
 
 def main():

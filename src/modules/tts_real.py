@@ -22,19 +22,89 @@ class ElevenLabsTTS:
             "xi-api-key": api_key
         }
         
-        # Default voice IDs
+        # Default voice IDs (Updated with actual ElevenLabs voices)
         self.voices = {
-            "rachel": "21m00Tcm4TlvDq8ikWAM",  # Rachel
-            "domi": "AZnzlk1XvdvUeBnXmlld",     # Domi  
-            "bella": "EXAVITQu4vr4xnSDxMaL",    # Bella
-            "antoni": "ErXwobaYiN019PkySvjV",   # Antoni
-            "elli": "MF3mGyEYCl7XYWbV9V6O",     # Elli
-            "josh": "TxGEqnXLBfF7IpEpRbXL",     # Josh
-            "arnold": "VR6AewLTigWG4xSOukaG",   # Arnold
-            "adam": "pNInz6obpgDQGcFmaJgB",     # Adam
-            "sam": "yoZ06aMxZJJ28mfd3POQ"       # Sam
+            "rachel": "21m00Tcm4TlvDq8ikWAM",     # Rachel - Female
+            "sarah": "EXAVITQu4vr4xnSDxMaL",      # Sarah - Female
+            "charlie": "IKne3meq5aSn9XLyUdCD",    # Charlie - Male
+            "daniel": "onwK4e9ZLuTAKqWW03F9",     # Daniel - Male
+            "george": "JBFqnCBsd6RMkjVDRZzb",     # George - Male
+            "jessica": "cgSgspJ2msm6clMCkdW9",    # Jessica - Female
+            "matilda": "XrExE9yKIg1WjnnlVkGX",    # Matilda - Female
+            "liam": "TX3LPaxmHKxFdv7VOQHJ",       # Liam - Male
+            "clyde": "2EiwWnXFnvU5JabPnv8n"       # Clyde - Male
         }
         
+        # Voice presets for different content types
+        self.voice_presets = {
+            "documentary": {
+                "voice": "daniel",
+                "settings": {"stability": 0.7, "similarity_boost": 0.6, "style": 0.4, "use_speaker_boost": True}
+            },
+            "news": {
+                "voice": "rachel",
+                "settings": {"stability": 0.8, "similarity_boost": 0.7, "style": 0.3, "use_speaker_boost": True}
+            },
+            "storytelling": {
+                "voice": "charlie",
+                "settings": {"stability": 0.4, "similarity_boost": 0.5, "style": 0.7, "use_speaker_boost": True}
+            },
+            "tutorial": {
+                "voice": "jessica",
+                "settings": {"stability": 0.6, "similarity_boost": 0.6, "style": 0.5, "use_speaker_boost": True}
+            },
+            "mystery": {
+                "voice": "clyde",
+                "settings": {"stability": 0.5, "similarity_boost": 0.5, "style": 0.8, "use_speaker_boost": True}
+            },
+            "energetic": {
+                "voice": "sarah",
+                "settings": {"stability": 0.3, "similarity_boost": 0.5, "style": 0.9, "use_speaker_boost": True}
+            },
+            "calm": {
+                "voice": "george",
+                "settings": {"stability": 0.9, "similarity_boost": 0.7, "style": 0.2, "use_speaker_boost": False}
+            }
+        }
+        
+    def _find_voice_by_name(self, name: str) -> Optional[str]:
+        """
+        Find a voice ID by name from the ElevenLabs API
+        
+        Args:
+            name: Voice name to search for (case insensitive)
+            
+        Returns:
+            Voice ID if found, None otherwise
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/voices",
+                headers={"xi-api-key": self.api_key}
+            )
+            
+            if response.status_code == 200:
+                voices = response.json().get('voices', [])
+                
+                # Search for exact match (case insensitive)
+                for voice in voices:
+                    if voice.get('name', '').lower() == name.lower():
+                        voice_id = voice.get('voice_id')
+                        print(f"Found custom voice: {voice.get('name')} (ID: {voice_id})")
+                        return voice_id
+                
+                # Search for partial match if no exact match
+                for voice in voices:
+                    if name.lower() in voice.get('name', '').lower():
+                        voice_id = voice.get('voice_id')
+                        print(f"Found custom voice (partial match): {voice.get('name')} (ID: {voice_id})")
+                        return voice_id
+                        
+            return None
+        except Exception as e:
+            print(f"Error searching for voice: {e}")
+            return None
+    
     def test_connection(self) -> bool:
         """Test if the API key is valid"""
         try:
@@ -58,7 +128,8 @@ class ElevenLabsTTS:
                       text: str, 
                       output_path: Path,
                       voice: str = "rachel",
-                      model: str = "eleven_monolingual_v1") -> Tuple[Path, float]:
+                      model: str = "eleven_monolingual_v1",
+                      voice_settings: Optional[Dict[str, Any]] = None) -> Tuple[Path, float]:
         """
         Generate audio from text using ElevenLabs API
         
@@ -67,29 +138,49 @@ class ElevenLabsTTS:
             output_path: Where to save the audio file
             voice: Voice name or ID
             model: ElevenLabs model to use
+            voice_settings: Optional custom voice settings dict with:
+                - stability: 0.0-1.0 (consistency vs expression)
+                - similarity_boost: 0.0-1.0 (voice similarity)
+                - style: 0.0-1.0 (style exaggeration)
+                - use_speaker_boost: true/false (voice enhancement)
             
         Returns:
             Tuple of (audio_path, duration_seconds)
         """
         
         # Get voice ID
-        voice_id = self.voices.get(voice.lower(), voice)
-        if len(voice_id) < 20:  # Not a valid ID
-            voice_id = self.voices.get("rachel")  # Default to Rachel
+        # First check if it's a predefined voice
+        voice_id = self.voices.get(voice.lower())
+        
+        # If not found in predefined voices, try to find it in the API
+        if not voice_id:
+            # Check if it's already a voice ID (20+ chars)
+            if len(voice) >= 20:
+                voice_id = voice
+            else:
+                # Try to find custom voice by name
+                voice_id = self._find_voice_by_name(voice)
+                if not voice_id:
+                    print(f"Warning: Voice '{voice}' not found, using default 'Rachel'")
+                    voice_id = self.voices.get("rachel")  # Default to Rachel
             
         # API endpoint
         url = f"{self.base_url}/text-to-speech/{voice_id}"
         
         # Request payload
-        data = {
-            "text": text,
-            "model_id": model,
-            "voice_settings": {
+        if voice_settings is None:
+            # Default settings
+            voice_settings = {
                 "stability": 0.5,
                 "similarity_boost": 0.5,
                 "style": 0.5,
                 "use_speaker_boost": True
             }
+        
+        data = {
+            "text": text,
+            "model_id": model,
+            "voice_settings": voice_settings
         }
         
         try:
@@ -201,6 +292,48 @@ class ElevenLabsTTS:
         
         print(f"[!] Created silent audio fallback: {duration:.1f}s")
         return wav_path, duration
+    
+    def generate_audio_with_preset(self,
+                                  text: str,
+                                  output_path: Path,
+                                  preset: str = "documentary",
+                                  model: str = "eleven_monolingual_v1") -> Tuple[Path, float]:
+        """
+        Generate audio using a content type preset or custom voice
+        
+        Args:
+            text: Text to convert to speech
+            output_path: Where to save the audio file
+            preset: Content type preset OR custom voice name
+            model: ElevenLabs model to use
+            
+        Returns:
+            Tuple of (audio_path, duration_seconds)
+        """
+        # Check if it's a known preset
+        if preset in self.voice_presets:
+            preset_config = self.voice_presets[preset]
+            print(f"[*] Using preset '{preset}' - Voice: {preset_config['voice']}")
+            voice = preset_config['voice']
+            settings = preset_config['settings']
+        else:
+            # Treat as custom voice name
+            print(f"[*] Using custom voice: {preset}")
+            voice = preset
+            settings = {
+                "stability": 0.5,
+                "similarity_boost": 0.5,
+                "style": 0.5,
+                "use_speaker_boost": True
+            }
+        
+        return self.generate_audio(
+            text=text,
+            output_path=output_path,
+            voice=voice,
+            model=model,
+            voice_settings=settings
+        )
 
 
 def test_elevenlabs():

@@ -1,0 +1,216 @@
+# AI-Slop Configuration File
+# YouTube Automation Pipeline Settings
+
+# Pipeline Configuration
+pipeline:
+  dry_run: false  # Set to true for testing without actual uploads
+  max_retries: 3
+  retry_delay: 5  # seconds
+  job_timeout: 600  # seconds (10 minutes)
+  
+# Reddit Configuration
+reddit:
+  subreddit: "popular"
+  post_limit: 10
+  min_score: 1000
+  time_filter: "day"  # hour, day, week, month, year, all
+  excluded_subreddits:
+    - "nsfw"
+    - "politics"
+    - "controversial"
+  excluded_flairs:
+    - "NSFW"
+    - "Spoiler"
+  
+# Topic Classification
+topics:
+  default: "explainer"
+  rules:
+    ai_news:
+      keywords:
+        - "AI"
+        - "artificial intelligence"
+        - "machine learning"
+        - "ChatGPT"
+        - "OpenAI"
+        - "neural network"
+        - "robotics"
+    listicle:
+      keywords:
+        - "top"
+        - "best"
+        - "worst"
+        - "amazing"
+        - "incredible"
+        - "facts"
+        - "things you didn't know"
+    explainer:
+      keywords:
+        - "how"
+        - "why"
+        - "what"
+        - "explained"
+        - "guide"
+        - "tutorial"
+
+# Video Configuration
+video:
+  target_minutes: 10
+  min_minutes: 8
+  max_minutes: 12
+  fps: 30
+  resolution: "1920x1080"
+  bitrate: "12M"
+  codec: "libx264"
+  clips_per_minute: 6
+  fade_duration: 0.2
+  
+# Audio/TTS Configuration
+tts:
+  provider: "elevenlabs"  # elevenlabs, azure, playht
+  voice_id: "rachel"  # ElevenLabs voice ID
+  model: "eleven_monolingual_v1"
+  stability: 0.75
+  similarity_boost: 0.75
+  speaking_rate: 1.0
+  output_format: "mp3"
+  
+# Stock Media Configuration
+stock_media:
+  providers:
+    - "pexels"
+    - "pixabay"
+  quality: "hd"  # sd, hd, 4k
+  min_clip_duration: 3  # seconds
+  max_clip_duration: 7  # seconds
+  fallback_keywords:
+    - "technology"
+    - "nature"
+    - "city"
+    - "abstract"
+    - "business"
+    
+# Thumbnail Configuration
+thumbnail:
+  width: 1280
+  height: 720
+  font_size: 120
+  font_family: "Arial"
+  text_color: "#FFFFFF"
+  background_color: "#1E1E1E"
+  text_position: "center"
+  max_words: 5
+  
+# YouTube Configuration
+youtube:
+  upload:
+    privacy_status: "unlisted"  # private, unlisted, public
+    category_id: 27  # Education
+    default_language: "en"
+    made_for_kids: false
+    notify_subscribers: false
+  metadata:
+    title_max_length: 65
+    title_min_length: 55
+    description_template: |
+      {intro}
+      
+      Source: {source_url}
+      
+      Timestamps:
+      {timestamps}
+      
+      #youtube #ai #technology
+    tags_count: 15
+    default_tags:
+      - "educational"
+      - "informative"
+      - "interesting facts"
+      - "learning"
+      - "knowledge"
+      
+# LLM Configuration
+llm:
+  provider: "openai"  # openai, anthropic
+  model: "gpt-3.5-turbo"
+  temperature: 0.3
+  top_p: 0.9
+  max_tokens: 2000
+  system_prompt_path: "src/templates/system_prompt.txt"
+  
+# Content Policy
+content_policy:
+  banned_terms:
+    - "copyright"
+    - "leaked"
+    - "illegal"
+    - "hack"
+    - "exploit"
+  sensitive_topics:
+    - "medical advice"
+    - "financial advice"
+    - "legal advice"
+    - "violence"
+    - "adult content"
+  require_disclaimer:
+    - "health"
+    - "finance"
+    - "investment"
+    - "medical"
+    
+# Deduplication
+deduplication:
+  enabled: true
+  cache_days: 7
+  cache_file: "data/cache/dedup.json"
+  
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "json"
+  file_path: "data/logs/pipeline.log"
+  max_file_size: "10MB"
+  backup_count: 5
+  
+# Metrics Configuration
+metrics:
+  enabled: true
+  output_format: "csv"  # csv, sqlite
+  file_path: "data/logs/metrics.csv"
+  
+# Scheduling Configuration
+scheduling:
+  enabled: false
+  cron_expression: "0 */6 * * *"  # Every 6 hours
+  max_daily_jobs: 4
+  time_zone: "UTC"
+  
+# Alert Configuration
+alerts:
+  enabled: false
+  email:
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    sender: "your-email@gmail.com"
+    recipients:
+      - "alert@example.com"
+  webhook:
+    url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+    
+# API Rate Limits
+rate_limits:
+  reddit:
+    requests_per_minute: 60
+  pexels:
+    requests_per_hour: 200
+  elevenlabs:
+    characters_per_month: 100000
+  youtube:
+    uploads_per_day: 50
+    
+# Resource Limits
+resources:
+  max_memory_mb: 4096
+  max_storage_gb: 50
+  temp_dir: "data/temp"
+  cleanup_after_job: true
